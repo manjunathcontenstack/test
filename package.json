@@ -1,0 +1,22 @@
+{
+  "name": "contentstack-react-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@contentstack/live-preview-utils": "^4.1.0",
+    "contentstack": "^3.26.2",
+    "dotenv": "^17.2.3",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-router-dom": "6.14.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.0.0",
+    "vite": "4.4.9"
+  }
+}
