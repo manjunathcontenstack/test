@@ -13,7 +13,7 @@ import syncManager from '../contentstack-sync'
 
 export default function App(){
   useEffect(() => {
-    // Initialize sync manager when app mounts
+  
     const initializeSync = async () => {
       try {
         await syncManager.initialize()
