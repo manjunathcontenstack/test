@@ -5,6 +5,11 @@ import Contentstack from 'contentstack'
 const apiKey = import.meta.env.VITE_CS_API_KEY || ''
 const deliveryToken = import.meta.env.VITE_CS_DELIVERY_TOKEN || ''
 const environment = import.meta.env.VITE_CS_ENV || 'development'
+const envFallbacks = ((import.meta.env.VITE_CS_ENV_FALLBACKS || '') + '')
+  .split(',')
+  .map(s => s && s.trim())
+  .filter(Boolean)
+const locale = import.meta.env.VITE_CS_LOCALE || 'en-us'
 const useCacheFallback = ((import.meta.env.VITE_USE_CACHE_FALLBACK || '') + '').toLowerCase() === 'true'
 
 if (!apiKey || !deliveryToken) {
@@ -52,30 +57,30 @@ async function fetchEntries(contentType, { limit = 100 } = {}) {
 
   // Fallback: try the CDN entries endpoint directly (no-store + cache-bust)
   try {
-    const ts = Date.now();
-    const url = `https://cdn.contentstack.io/v3/content_types/${encodeURIComponent(contentType)}/entries?environment=${encodeURIComponent(environment)}&locale=en-us&limit=${encodeURIComponent(limit)}&ts=${ts}`;
-    console.debug(`Trying CDN URL for ${contentType}:`, url);
-    
-    const resp = await fetch(url, {
-      cache: 'no-store',
-      headers: {
-        api_key: apiKey,
-        access_token: deliveryToken,
-        'x-request-id': `req-${ts}`,
-      },
-    });
-    
-    if (resp.ok) {
-      const json = await resp.json();
-      console.debug(`CDN response for ${contentType}:`, json);
-      
-      if (json && Array.isArray(json.entries) && json.entries.length) {
-        console.debug(`Found ${json.entries.length} entries for ${contentType} via CDN`);
-        const pruned = pruneToVisibleContent(contentType, json.entries);
-        return sortEntriesDesc(pruned.length ? pruned : json.entries);
+    const envCandidates = [environment, ...envFallbacks]
+    for (const envName of envCandidates) {
+      const ts = Date.now();
+      const url = `https://cdn.contentstack.io/v3/content_types/${encodeURIComponent(contentType)}/entries?environment=${encodeURIComponent(envName)}&locale=${encodeURIComponent(locale)}&limit=${encodeURIComponent(limit)}&ts=${ts}`;
+      console.debug(`Trying CDN URL for ${contentType} in env=${envName}:`, url);
+      const resp = await fetch(url, {
+        cache: 'no-store',
+        headers: {
+          api_key: apiKey,
+          access_token: deliveryToken,
+          'x-request-id': `req-${ts}`,
+        },
+      });
+      if (resp.ok) {
+        const json = await resp.json();
+        console.debug(`CDN response for ${contentType} (env=${envName}):`, json);
+        if (json && Array.isArray(json.entries) && json.entries.length) {
+          console.debug(`Found ${json.entries.length} entries for ${contentType} via CDN (env=${envName})`);
+          const pruned = pruneToVisibleContent(contentType, json.entries);
+          return sortEntriesDesc(pruned.length ? pruned : json.entries);
+        }
+      } else {
+        console.warn(`CDN request failed for ${contentType} (env=${envName}):`, resp.status, resp.statusText);
       }
-    } else {
-      console.warn(`CDN request failed for ${contentType}:`, resp.status, resp.statusText);
     }
   } catch (err) {
     console.debug('CDN fetch failed for', contentType, err && err.message);
@@ -115,12 +120,15 @@ async function fetchEntryByUID(contentType, uid) {
   } catch (err) {
     // Try CDN single-entry endpoint
     try {
-      const ts = Date.now();
-      const url = `https://cdn.contentstack.io/v3/content_types/${encodeURIComponent(contentType)}/entries/${encodeURIComponent(uid)}?environment=${encodeURIComponent(environment)}&locale=en-us&ts=${ts}`;
-      const resp = await fetch(url, { cache: 'no-store', headers: { api_key: apiKey, access_token: deliveryToken, 'x-request-id': `req-${ts}` } });
-      if (resp.ok) {
-        const json = await resp.json();
-        if (json && json.entry) return json.entry;
+      const envCandidates = [environment, ...envFallbacks]
+      for (const envName of envCandidates) {
+        const ts = Date.now();
+        const url = `https://cdn.contentstack.io/v3/content_types/${encodeURIComponent(contentType)}/entries/${encodeURIComponent(uid)}?environment=${encodeURIComponent(envName)}&locale=${encodeURIComponent(locale)}&ts=${ts}`;
+        const resp = await fetch(url, { cache: 'no-store', headers: { api_key: apiKey, access_token: deliveryToken, 'x-request-id': `req-${ts}` } });
+        if (resp.ok) {
+          const json = await resp.json();
+          if (json && json.entry) return json.entry;
+        }
       }
     } catch (e) {
       console.debug('CDN entry fetch failed', e && e.message);
