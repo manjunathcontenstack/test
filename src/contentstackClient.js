@@ -49,15 +49,18 @@ async function fetchEntries(contentType, { limit = 100 } = {}) {
     console.debug('SDK fetchEntries failed, will try CDN/fallback:', err && err.message);
   }
 
-  // Fallback: try the CDN entries endpoint directly
+  // Fallback: try the CDN entries endpoint directly (no-store + cache-bust)
   try {
-    const url = `https://cdn.contentstack.io/v3/content_types/${encodeURIComponent(contentType)}/entries?environment=${encodeURIComponent(environment)}&locale=en-us&limit=${encodeURIComponent(limit)}`;
+    const ts = Date.now();
+    const url = `https://cdn.contentstack.io/v3/content_types/${encodeURIComponent(contentType)}/entries?environment=${encodeURIComponent(environment)}&locale=en-us&limit=${encodeURIComponent(limit)}&ts=${ts}`;
     console.debug(`Trying CDN URL for ${contentType}:`, url);
     
     const resp = await fetch(url, {
+      cache: 'no-store',
       headers: {
         api_key: apiKey,
         access_token: deliveryToken,
+        'x-request-id': `req-${ts}`,
       },
     });
     
@@ -67,7 +70,8 @@ async function fetchEntries(contentType, { limit = 100 } = {}) {
       
       if (json && Array.isArray(json.entries) && json.entries.length) {
         console.debug(`Found ${json.entries.length} entries for ${contentType} via CDN`);
-        return json.entries;
+        const pruned = pruneToVisibleContent(contentType, json.entries);
+        return pruned.length ? pruned : json.entries;
       }
     } else {
       console.warn(`CDN request failed for ${contentType}:`, resp.status, resp.statusText);
@@ -88,7 +92,8 @@ async function fetchEntries(contentType, { limit = 100 } = {}) {
           
           if (cache && Array.isArray(cache[contentType]) && cache[contentType].length) {
             console.debug(`Found ${cache[contentType].length} entries for ${contentType} in cache`);
-            return cache[contentType];
+            const pruned = pruneToVisibleContent(contentType, cache[contentType]);
+            return pruned.length ? pruned : cache[contentType];
           }
         }
       }
@@ -109,8 +114,9 @@ async function fetchEntryByUID(contentType, uid) {
   } catch (err) {
     // Try CDN single-entry endpoint
     try {
-      const url = `https://cdn.contentstack.io/v3/content_types/${encodeURIComponent(contentType)}/entries/${encodeURIComponent(uid)}?environment=${encodeURIComponent(environment)}&locale=en-us`;
-      const resp = await fetch(url, { headers: { api_key: apiKey, access_token: deliveryToken } });
+      const ts = Date.now();
+      const url = `https://cdn.contentstack.io/v3/content_types/${encodeURIComponent(contentType)}/entries/${encodeURIComponent(uid)}?environment=${encodeURIComponent(environment)}&locale=en-us&ts=${ts}`;
+      const resp = await fetch(url, { cache: 'no-store', headers: { api_key: apiKey, access_token: deliveryToken, 'x-request-id': `req-${ts}` } });
       if (resp.ok) {
         const json = await resp.json();
         if (json && json.entry) return json.entry;
@@ -137,6 +143,51 @@ async function fetchEntryByUID(contentType, uid) {
       }
     }
     throw err;
+  }
+}
+
+// Utility: prefer entries with actual visible content instead of blank scaffolds
+function pruneToVisibleContent(contentType, entries) {
+  try {
+    return (entries || []).filter((e) => hasVisibleContent(contentType, e));
+  } catch {
+    return entries || [];
+  }
+}
+
+function nonEmptyString(v) {
+  return typeof v === 'string' && v.trim() !== ''
+}
+
+function hasVisibleContent(contentType, e) {
+  if (!e || typeof e !== 'object') return false
+  // Generic signals
+  if (nonEmptyString(e.title)) return true
+  if (Array.isArray(e.features) && e.features.length) return true
+
+  switch (contentType) {
+    case 'blog_post': {
+      if (nonEmptyString(e.summary) || nonEmptyString(e.description)) return true
+      const b = e.body
+      if (typeof b === 'string' && nonEmptyString(b)) return true
+      if (b && typeof b === 'object') {
+        if (nonEmptyString(b.html)) return true
+        const nodes = Array.isArray(b.children) ? b.children : (Array.isArray(b.content) ? b.content : [])
+        return Array.isArray(nodes) && nodes.some(n => (n && (n.text && nonEmptyString(n.text))))
+      }
+      return false
+    }
+    case 'about_page': {
+      return nonEmptyString(e.hero_title) || (Array.isArray(e.values) && e.values.length) || (e.stats && (nonEmptyString(e.stats.customers) || nonEmptyString(e.stats.uptime)))
+    }
+    case 'services_page': {
+      return (Array.isArray(e.main_features) && e.main_features.length) || (Array.isArray(e.additional_services) && e.additional_services.length)
+    }
+    case 'contact_page': {
+      return nonEmptyString(e.hero_title) || (Array.isArray(e.contact_options) && e.contact_options.length)
+    }
+    default:
+      return true
   }
 }
 
