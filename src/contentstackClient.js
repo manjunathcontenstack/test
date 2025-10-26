@@ -5,7 +5,7 @@ import Contentstack from 'contentstack'
 const apiKey = import.meta.env.VITE_CS_API_KEY || ''
 const deliveryToken = import.meta.env.VITE_CS_DELIVERY_TOKEN || ''
 const environment = import.meta.env.VITE_CS_ENV || 'development'
-const useCacheFallback = ((import.meta.env.VITE_USE_CACHE_FALLBACK || '') + '').toLowerCase() === 'true' || (!apiKey || !deliveryToken)
+const useCacheFallback = ((import.meta.env.VITE_USE_CACHE_FALLBACK || '') + '').toLowerCase() === 'true'
 
 if (!apiKey || !deliveryToken) {
   console.warn('Warning: Contentstack API key or delivery token not provided. Set VITE_CS_API_KEY and VITE_CS_DELIVERY_TOKEN in .env file for dynamic content.');
