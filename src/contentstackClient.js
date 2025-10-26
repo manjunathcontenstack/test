@@ -5,6 +5,7 @@ import Contentstack from 'contentstack'
 const apiKey = import.meta.env.VITE_CS_API_KEY || ''
 const deliveryToken = import.meta.env.VITE_CS_DELIVERY_TOKEN || ''
 const environment = import.meta.env.VITE_CS_ENV || 'development'
+const useCacheFallback = ((import.meta.env.VITE_USE_CACHE_FALLBACK || '') + '').toLowerCase() === 'true' || (!apiKey || !deliveryToken)
 
 if (!apiKey || !deliveryToken) {
   console.warn('Warning: Contentstack API key or delivery token not provided. Set VITE_CS_API_KEY and VITE_CS_DELIVERY_TOKEN in .env file for dynamic content.');
@@ -76,22 +77,24 @@ async function fetchEntries(contentType, { limit = 100 } = {}) {
   }
 
   // Final fallback: try local cache file served from project root: /cs_cache.json
-  try {
-    if (typeof window !== 'undefined' && window.location) {
-      console.debug(`Trying cache fallback for ${contentType}`);
-      const r = await fetch('/cs_cache.json', { cache: 'no-store' });
-      if (r && r.ok) {
-        const cache = await r.json();
-        console.debug(`Cache content for ${contentType}:`, cache[contentType]);
-        
-        if (cache && Array.isArray(cache[contentType]) && cache[contentType].length) {
-          console.debug(`Found ${cache[contentType].length} entries for ${contentType} in cache`);
-          return cache[contentType];
+  if (useCacheFallback) {
+    try {
+      if (typeof window !== 'undefined' && window.location) {
+        console.debug(`Trying cache fallback for ${contentType}`);
+        const r = await fetch('/cs_cache.json', { cache: 'no-store' });
+        if (r && r.ok) {
+          const cache = await r.json();
+          console.debug(`Cache content for ${contentType}:`, cache[contentType]);
+          
+          if (cache && Array.isArray(cache[contentType]) && cache[contentType].length) {
+            console.debug(`Found ${cache[contentType].length} entries for ${contentType} in cache`);
+            return cache[contentType];
+          }
         }
       }
+    } catch (err) {
+      console.debug('Local cache fetch failed', err && err.message);
     }
-  } catch (err) {
-    console.debug('Local cache fetch failed', err && err.message);
   }
 
   // Return empty array if nothing found
@@ -116,20 +119,22 @@ async function fetchEntryByUID(contentType, uid) {
       console.debug('CDN entry fetch failed', e && e.message);
     }
     // Final fallback: try local cache file served from project root: /cs_cache.json
-    try {
-      if (typeof window !== 'undefined' && window.location) {
-        const r = await fetch('/cs_cache.json');
-        if (r && r.ok) {
-          const cache = await r.json();
-          const list = cache && cache[contentType];
-          if (Array.isArray(list)) {
-            const found = list.find((e) => e && e.uid === uid);
-            if (found) return found;
+    if (useCacheFallback) {
+      try {
+        if (typeof window !== 'undefined' && window.location) {
+          const r = await fetch('/cs_cache.json', { cache: 'no-store' });
+          if (r && r.ok) {
+            const cache = await r.json();
+            const list = cache && cache[contentType];
+            if (Array.isArray(list)) {
+              const found = list.find((e) => e && e.uid === uid);
+              if (found) return found;
+            }
           }
         }
+      } catch (e) {
+        console.debug('Local cache entry fetch failed', e && e.message);
       }
-    } catch (e) {
-      console.debug('Local cache entry fetch failed', e && e.message);
     }
     throw err;
   }
