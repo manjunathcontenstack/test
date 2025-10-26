@@ -68,6 +68,9 @@ async function fetchEntries(contentType, { limit = 100 } = {}) {
           api_key: apiKey,
           access_token: deliveryToken,
           'x-request-id': `req-${ts}`,
+          'cache-control': 'no-cache, no-store, must-revalidate',
+          'pragma': 'no-cache',
+          'expires': '0',
         },
       });
       if (resp.ok) {
@@ -124,7 +127,7 @@ async function fetchEntryByUID(contentType, uid) {
       for (const envName of envCandidates) {
         const ts = Date.now();
         const url = `https://cdn.contentstack.io/v3/content_types/${encodeURIComponent(contentType)}/entries/${encodeURIComponent(uid)}?environment=${encodeURIComponent(envName)}&locale=${encodeURIComponent(locale)}&ts=${ts}`;
-        const resp = await fetch(url, { cache: 'no-store', headers: { api_key: apiKey, access_token: deliveryToken, 'x-request-id': `req-${ts}` } });
+        const resp = await fetch(url, { cache: 'no-store', headers: { api_key: apiKey, access_token: deliveryToken, 'x-request-id': `req-${ts}`, 'cache-control': 'no-cache, no-store, must-revalidate', 'pragma': 'no-cache', 'expires': '0' } });
         if (resp.ok) {
           const json = await resp.json();
           if (json && json.entry) return json.entry;
