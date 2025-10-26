@@ -42,7 +42,8 @@ async function fetchEntries(contentType, { limit = 100 } = {}) {
     
     if (entries && entries.length) {
       console.debug(`Found ${entries.length} entries for ${contentType} via SDK`);
-      return entries;
+      const pruned = pruneToVisibleContent(contentType, entries);
+      return sortEntriesDesc(pruned.length ? pruned : entries);
     }
   } catch (err) {
     // SDK may error in some envs; fall through to HTTP CDN fetch
@@ -71,7 +72,7 @@ async function fetchEntries(contentType, { limit = 100 } = {}) {
       if (json && Array.isArray(json.entries) && json.entries.length) {
         console.debug(`Found ${json.entries.length} entries for ${contentType} via CDN`);
         const pruned = pruneToVisibleContent(contentType, json.entries);
-        return pruned.length ? pruned : json.entries;
+        return sortEntriesDesc(pruned.length ? pruned : json.entries);
       }
     } else {
       console.warn(`CDN request failed for ${contentType}:`, resp.status, resp.statusText);
@@ -93,7 +94,7 @@ async function fetchEntries(contentType, { limit = 100 } = {}) {
           if (cache && Array.isArray(cache[contentType]) && cache[contentType].length) {
             console.debug(`Found ${cache[contentType].length} entries for ${contentType} in cache`);
             const pruned = pruneToVisibleContent(contentType, cache[contentType]);
-            return pruned.length ? pruned : cache[contentType];
+            return sortEntriesDesc(pruned.length ? pruned : cache[contentType]);
           }
         }
       }
@@ -173,7 +174,18 @@ function hasVisibleContent(contentType, e) {
       if (b && typeof b === 'object') {
         if (nonEmptyString(b.html)) return true
         const nodes = Array.isArray(b.children) ? b.children : (Array.isArray(b.content) ? b.content : [])
-        return Array.isArray(nodes) && nodes.some(n => (n && (n.text && nonEmptyString(n.text))))
+        const textNodes = (function flatten(ns){
+          if (!Array.isArray(ns)) return []
+          let out = []
+          ns.forEach(n => {
+            if (!n) return
+            if (typeof n.text === 'string') out.push(n.text)
+            const kids = n.children || n.content
+            if (Array.isArray(kids)) out = out.concat(flatten(kids))
+          })
+          return out
+        })(nodes)
+        return textNodes.some(t => nonEmptyString(t))
       }
       return false
     }
@@ -181,13 +193,25 @@ function hasVisibleContent(contentType, e) {
       return nonEmptyString(e.hero_title) || (Array.isArray(e.values) && e.values.length) || (e.stats && (nonEmptyString(e.stats.customers) || nonEmptyString(e.stats.uptime)))
     }
     case 'services_page': {
-      return (Array.isArray(e.main_features) && e.main_features.length) || (Array.isArray(e.additional_services) && e.additional_services.length)
+      return nonEmptyString(e.hero_title) || (Array.isArray(e.main_features) && e.main_features.length) || (Array.isArray(e.additional_services) && e.additional_services.length)
     }
     case 'contact_page': {
-      return nonEmptyString(e.hero_title) || (Array.isArray(e.contact_options) && e.contact_options.length)
+      return nonEmptyString(e.hero_title) || nonEmptyString(e.office_title) || (Array.isArray(e.contact_options) && e.contact_options.length) || nonEmptyString(e.office_address)
     }
     default:
       return true
+  }
+}
+
+function sortEntriesDesc(entries) {
+  try {
+    return [...(entries || [])].sort((a, b) => {
+      const da = new Date(a.updated_at || a.created_at || 0).getTime()
+      const db = new Date(b.updated_at || b.created_at || 0).getTime()
+      return db - da
+    })
+  } catch {
+    return entries || []
   }
 }
 
