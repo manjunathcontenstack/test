@@ -79,7 +79,7 @@ async function fetchEntries(contentType, { limit = 100 } = {}) {
   try {
     if (typeof window !== 'undefined' && window.location) {
       console.debug(`Trying cache fallback for ${contentType}`);
-      const r = await fetch('/cs_cache.json');
+      const r = await fetch('/cs_cache.json', { cache: 'no-store' });
       if (r && r.ok) {
         const cache = await r.json();
         console.debug(`Cache content for ${contentType}:`, cache[contentType]);
