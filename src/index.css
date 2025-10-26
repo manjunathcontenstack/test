@@ -180,3 +180,113 @@ main{min-height:60vh}
 .footer-legal a:hover {
   color: #fff;
 }
+
+/* Services - Advanced Core Features */
+.features-detail-section {
+  padding: 2rem 0;
+}
+.features-advanced-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+.feature-advanced-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 1.25rem 1.25rem 1rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(16,24,40,0.06);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.feature-advanced-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), #4A18A3, #8b5cf6);
+  opacity: 0;
+  transform: translateY(-3px);
+  transition: opacity .25s ease, transform .25s ease;
+}
+.feature-advanced-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(16,24,40,0.10);
+  border-color: #d1d5db;
+}
+.feature-advanced-card:hover::before {
+  opacity: 1;
+  transform: translateY(0);
+}
+.feature-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+.feature-index-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, var(--primary), #4A18A3);
+  background-size: 200% 200%;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  transition: transform .2s ease, box-shadow .2s ease;
+  animation: badgeShift 6s ease infinite;
+}
+.feature-advanced-card:hover .feature-index-badge {
+  transform: scale(1.06);
+  box-shadow: 0 0 0 4px rgba(108,45,215,0.10);
+}
+.feature-description {
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0.25rem 0 0.75rem;
+}
+.feature-list.check {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.feature-list.check li {
+  position: relative;
+  padding-left: 1.4rem;
+  color: #111827;
+}
+.feature-list.check li:before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* Subtle entrance animation */
+.feature-advanced-card {
+  animation: floatUp .4s ease both;
+}
+
+@keyframes floatUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes badgeShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+

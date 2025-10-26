@@ -105,59 +105,21 @@ export default function Services() {
             <div className="section-header">
               <h2 className="section-title">Core Features</h2>
             </div>
-            <div>
+            <div className="features-advanced-grid">
               {data.main_features.map((feature, index) => (
-                <div key={feature._metadata?.uid || index} className={`service-feature ${index % 2 !== 0 ? 'reverse' : ''}`}>
-                  <div className="service-content">
-                    <div className="service-icon-large">
-                      {index === 0 ? (
-                        // Headless CMS - API/Connection icon
-                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/>
-                          <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-                          <path d="M8 12h8M8 16h6"/>
-                        </svg>
-                      ) : index === 1 ? (
-                        // Multi-Site Management - Multiple screens icon
-                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <rect x="2" y="4" width="20" height="12" rx="2"/>
-                          <path d="M2 8h20M8 4v4M16 4v4"/>
-                        </svg>
-                      ) : (
-                        // Content Modeling - Building blocks icon
-                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                          <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
-                        </svg>
-                      )}
-                    </div>
+                <div key={feature._metadata?.uid || index} className="feature-advanced-card">
+                  <div className="feature-card-header">
+                    <div className="feature-index-badge">{String(index + 1).padStart(2, '0')}</div>
                     <h3>{feature.title}</h3>
-                    <p className="feature-description">{feature.description}</p>
-                    {feature.features && (
-                      <ul className="feature-list">
-                        {feature.features.split('\n').map((feat, i) => (
-                          <li key={i}>{feat.replace(/^\\n|\\n$/g, '')}</li>
-                        ))}
-                      </ul>
-                    )}
                   </div>
-                  <div className="service-visual">
-                    <div className="code-preview">
-                      <div className="code-header">
-                        <div className="code-dot"></div>
-                        <div className="code-dot"></div>
-                        <div className="code-dot"></div>
-                      </div>
-                      <pre>
-                        <code>{`// ${feature.title} API Example
-const content = await Stack
-  .ContentType('${feature.title.toLowerCase().replace(/\s+/g, '_')}')
-  .Query()
-  .find();`}
-                        </code>
-                      </pre>
-                    </div>
-                  </div>
+                  <p className="feature-description">{feature.description}</p>
+                  {feature.features && (
+                    <ul className="feature-list check">
+                      {feature.features.split('\n').map((feat, i) => (
+                        <li key={i}>{feat.replace(/^\\n|\\n$/g, '')}</li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               ))}
             </div>

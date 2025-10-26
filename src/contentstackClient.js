@@ -115,6 +115,22 @@ async function fetchEntryByUID(contentType, uid) {
     } catch (e) {
       console.debug('CDN entry fetch failed', e && e.message);
     }
+    // Final fallback: try local cache file served from project root: /cs_cache.json
+    try {
+      if (typeof window !== 'undefined' && window.location) {
+        const r = await fetch('/cs_cache.json');
+        if (r && r.ok) {
+          const cache = await r.json();
+          const list = cache && cache[contentType];
+          if (Array.isArray(list)) {
+            const found = list.find((e) => e && e.uid === uid);
+            if (found) return found;
+          }
+        }
+      }
+    } catch (e) {
+      console.debug('Local cache entry fetch failed', e && e.message);
+    }
     throw err;
   }
 }

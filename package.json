@@ -8,7 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@contentstack/live-preview-utils": "^4.1.0",
+    "@contentstack/live-preview-utils": "^4.1.1",
     "contentstack": "^3.26.2",
     "dotenv": "^17.2.3",
     "react": "18.2.0",
