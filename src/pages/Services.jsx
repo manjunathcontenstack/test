@@ -10,13 +10,20 @@ export default function Services() {
       try {
         const entries = await fetchEntries('services_page')
         if (entries && entries.length > 0) {
-          // Sort by updated_at to get the most recent
-          const sortedEntries = entries.sort((a, b) => {
-            const dateA = new Date(a.updated_at || a.created_at)
-            const dateB = new Date(b.updated_at || b.created_at)
-            return dateB - dateA
-          })
-          setServicesData(sortedEntries[0])
+          // Choose the entry with the richest content (then most recent)
+          const score = (e) => {
+            let s = 0
+            if (e && typeof e === 'object') {
+              if (e.hero_title) s += 1
+              if (Array.isArray(e.main_features)) s += e.main_features.length * 10
+              if (Array.isArray(e.additional_services)) s += e.additional_services.length * 5
+              if (Array.isArray(e.integrations)) s += e.integrations.length
+            }
+            const date = new Date(e && (e.updated_at || e.created_at) || 0).getTime()
+            return s * 100000 + date // prioritize richness, then recency
+          }
+          const best = [...entries].sort((a, b) => score(b) - score(a))[0]
+          setServicesData(best)
         }
       } catch (err) {
         console.warn('Failed to fetch services data:', err)

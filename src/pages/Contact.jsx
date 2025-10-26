@@ -10,13 +10,21 @@ export default function Contact() {
       try {
         const entries = await fetchEntries('contact_page')
         if (entries && entries.length > 0) {
-          // Sort by updated_at to get the most recent
-          const sortedEntries = entries.sort((a, b) => {
-            const dateA = new Date(a.updated_at || a.created_at)
-            const dateB = new Date(b.updated_at || b.created_at)
-            return dateB - dateA
-          })
-          setContactData(sortedEntries[0])
+          // Choose the entry with the richest visible content
+          const score = (e) => {
+            let s = 0
+            if (e && typeof e === 'object') {
+              if (e.hero_title) s += 2
+              if (e.office_title) s += 1
+              if (e.office_address) s += 1
+              if (Array.isArray(e.contact_options)) s += e.contact_options.length * 5
+              if (Array.isArray(e.faqs)) s += e.faqs.length * 3
+            }
+            const date = new Date(e && (e.updated_at || e.created_at) || 0).getTime()
+            return s * 100000 + date
+          }
+          const best = [...entries].sort((a, b) => score(b) - score(a))[0]
+          setContactData(best)
         }
       } catch (err) {
         console.warn('Failed to fetch contact data:', err)

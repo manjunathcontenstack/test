@@ -10,13 +10,21 @@ export default function About() {
       try {
         const entries = await fetchEntries('about_page')
         if (entries && entries.length > 0) {
-          // Sort by updated_at to get the most recent
-          const sortedEntries = entries.sort((a, b) => {
-            const dateA = new Date(a.updated_at || a.created_at)
-            const dateB = new Date(b.updated_at || b.created_at)
-            return dateB - dateA
-          })
-          setAboutData(sortedEntries[0])
+          // Choose the entry with the richest content
+          const score = (e) => {
+            let s = 0
+            if (e && typeof e === 'object') {
+              if (e.hero_title) s += 2
+              if (e.mission_section && (e.mission_section.mission_title || e.mission_section.mission_description)) s += 5
+              if (Array.isArray(e.values)) s += e.values.length * 3
+              if (e.stats && (e.stats.customers || e.stats.uptime)) s += 2
+              if (Array.isArray(e.team_members)) s += e.team_members.length
+            }
+            const date = new Date(e && (e.updated_at || e.created_at) || 0).getTime()
+            return s * 100000 + date
+          }
+          const best = [...entries].sort((a, b) => score(b) - score(a))[0]
+          setAboutData(best)
         }
       } catch (err) {
         console.warn('Failed to fetch about data:', err)
